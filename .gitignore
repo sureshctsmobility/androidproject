@@ -1,0 +1,53 @@
+# --- Build Artifacts ---
+# Ignore compiled code and all build output folders
+build/
+/*/build/
+bin/
+gen/
+out/
+
+# --- Android Studio & IntelliJ IDEA ---
+# Ignore IDE-specific settings that vary between developers
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/shelf/
+.idea/dictionaries/
+.idea/libraries/
+.idea/caches/
+.idea/assetWizardSettings.xml
+.idea/modules.xml
+.idea/navEditor.xml
+.idea/deploymentTargetSelector.xml
+*.iml
+*.iws
+*.ipr
+
+# --- Local Configurations ---
+# NEVER share your local SDK paths or machine-specific configs
+local.properties
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Gradle ---
+# Ignore the local gradle cache and build history
+.gradle/
+
+# --- Log Files ---
+*.log
+
+# --- Native Build ---
+# Necessary if you use C++ or NDK in the future
+.externalNativeBuild/
+.cxx/
+cmake-build-*/
+
+# --- Captures ---
+# Ignore memory dumps and performance captures
+/captures/
+
+# --- Secrets & Signing ---
+# Keep your signing keys and private credentials out of GitHub
+*.keystore
+*.jks
+google-services.json

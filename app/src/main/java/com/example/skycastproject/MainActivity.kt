@@ -105,6 +105,7 @@ fun MainScreen() {
             composable(Screen.Home.route) {
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val uiState by homeViewModel.state.collectAsState()
+                val isRefreshing by homeViewModel.isRefreshing.collectAsState()
 
                 val context = LocalContext.current
 
@@ -118,6 +119,7 @@ fun MainScreen() {
 
                 HomeScreen(
                     uiState = uiState,
+                    isRefreshing = isRefreshing,
                     onRequestPermission = { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onRefresh = { homeViewModel.loadDeviceLocationWeather(context) }
                 )

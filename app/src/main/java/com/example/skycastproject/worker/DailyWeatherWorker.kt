@@ -38,24 +38,21 @@ class DailyWeatherWorker @AssistedInject constructor(
         try {
             Log.d("DailyWeatherWorker", "Background synchronization task started.")
 
-            // 1. Fetch live device location points
             val location = locationTracker.getCurrentLocationCoordinates()
                 ?: return@withContext Result.retry()
 
-            // 2. Request data from your repository layer
             val res = repository.fetchDirectStaticForecast(location.latitude, location.longitude)
 
-            // Reverse geocode to keep track of names inside cache layers
             val cityName = try {
                 val geocoder = Geocoder(context, Locale.getDefault())
                 val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                 val address = addresses?.firstOrNull()
+                // Standardized priority used across App and Worker
                 address?.subLocality ?: address?.locality ?: address?.subAdminArea ?: "My Location"
             } catch (e: Exception) { 
                 "My Location"
             }
 
-            // 3. Map domain data properties into the Room database structure
             val entity = WeatherCacheEntity(
                 cityName = cityName,
                 latitude = location.latitude,
@@ -76,14 +73,13 @@ class DailyWeatherWorker @AssistedInject constructor(
                 lastUpdatedEpochMillis = System.currentTimeMillis()
             )
 
-            // Insert data mapped under the specific city name and a "My Location" backup reference
+            // Sync database cache
             database.weatherDao().insertWeatherCache(entity)
             database.weatherDao().insertWeatherCache(entity.copy(cityName = "My Location"))
 
-            // 4. Update widget
+            // Trigger Widget Update
             SkyCastWidget().updateAll(context)
 
-            // 5. Notification Dispatch
             val advice = "Temp is ${res.currentTemp}°C. ${if (res.uvIndex >= 5.0) "High UV—apply sunscreen." else "Weather conditions are normal."}"
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -103,7 +99,6 @@ class DailyWeatherWorker @AssistedInject constructor(
                 .setContentIntent(pending)
             manager.notify(1001, builder.build())
 
-            // 6. Schedule next run
             NotificationScheduler.scheduleNextRun(context)
             Result.success()
         } catch(e: Exception) {

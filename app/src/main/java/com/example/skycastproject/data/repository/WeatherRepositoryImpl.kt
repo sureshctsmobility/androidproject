@@ -30,7 +30,13 @@ class WeatherRepositoryImpl @Inject constructor(
         val isFresh = localCache != null && (System.currentTimeMillis() - localCache.lastUpdatedEpochMillis < cacheTtlTimeout)
 
         if (isFresh) {
-            emit(Resource.Success(localCache!!.toDomainRepresentation()))
+            // Standardize: Update timestamp to mark this as the most recently viewed city
+            val freshCache = localCache!!.copy(lastUpdatedEpochMillis = System.currentTimeMillis())
+            weatherDao.insertWeatherCache(freshCache)
+            // Ensure generic reference is also updated for the Widget
+            weatherDao.insertWeatherCache(freshCache.copy(cityName = "My Location"))
+            
+            emit(Resource.Success(freshCache.toDomainRepresentation()))
         } else {
             try {
                 val networkResponse = weatherApi.getFullForecast(lat, lon)
@@ -52,6 +58,8 @@ class WeatherRepositoryImpl @Inject constructor(
                     lastUpdatedEpochMillis = System.currentTimeMillis()
                 )
                 weatherDao.insertWeatherCache(newCache)
+                weatherDao.insertWeatherCache(newCache.copy(cityName = "My Location"))
+                
                 emit(Resource.Success(newCache.toDomainRepresentation()))
             } catch (e: Exception) {
                 if (localCache != null) emit(Resource.Success(localCache.toDomainRepresentation()))
@@ -62,7 +70,7 @@ class WeatherRepositoryImpl @Inject constructor(
 
     override suspend fun fetchDirectStaticForecast(lat: Double, lon: Double): WeatherDomainModel {
         val dto = weatherApi.getFullForecast(lat, lon)
-        return WeatherCacheEntity(
+        val entity = WeatherCacheEntity(
             cityName = "Cache Mapping Container", latitude = lat, longitude = lon,
             temperature = dto.current.temperature2m, apparentTemperature = dto.current.apparentTemperature,
             humidity = dto.current.relativeHumidity2m, windSpeed = dto.current.windSpeed10m,
@@ -71,7 +79,8 @@ class WeatherRepositoryImpl @Inject constructor(
             hourlyCodes = dto.hourly.weatherCodes.joinToString(","), dailyTimes = dto.daily.time.joinToString(","),
             dailyHighs = dto.daily.temperaturesMax.joinToString(","), dailyLows = dto.daily.temperaturesMin.joinToString(","),
             dailyCodes = dto.daily.weatherCodes.joinToString(","), lastUpdatedEpochMillis = System.currentTimeMillis()
-        ).toDomainRepresentation()
+        )
+        return entity.toDomainRepresentation()
     }
 }
 
@@ -80,10 +89,8 @@ private fun WeatherCacheEntity.toDomainRepresentation(): WeatherDomainModel {
     val rawTemps = hourlyTemps.split(",")
     val rawCodes = hourlyCodes.split(",")
     
-    // Get current time at hour precision
     val now = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0)
     
-    // Robustly find the starting index for "Now" by comparing time values
     var startIndex = 0
     for (i in rawTimes.indices) {
         try {
@@ -96,7 +103,6 @@ private fun WeatherCacheEntity.toDomainRepresentation(): WeatherDomainModel {
         } catch (e: Exception) {}
     }
 
-    // Map 24 entries starting from the current hour
     val mappedHourly = mutableListOf<DomainHourlyItem>()
     for (offset in 0 until 24) {
         val targetIndex = startIndex + offset
@@ -104,7 +110,6 @@ private fun WeatherCacheEntity.toDomainRepresentation(): WeatherDomainModel {
             val timeStr = rawTimes[targetIndex].replace(" ", "T")
             val formattedLabel = try {
                 val parsed = LocalDateTime.parse(timeStr)
-                // "h a" format gives "6 pm"
                 parsed.format(DateTimeFormatter.ofPattern("h a")).lowercase()
             } catch(e: Exception) { "" }
             
@@ -139,6 +144,8 @@ private fun WeatherCacheEntity.toDomainRepresentation(): WeatherDomainModel {
     return WeatherDomainModel(
         cityName = cityName, currentTemp = temperature.toInt(), apparentTemp = apparentTemperature.toInt(),
         humidity = "$humidity%", windSpeed = "$windSpeed km/h", weatherCode = weatherCode, uvIndex = uvIndex,
-        hourlyItems = mappedHourly, dailyItems = mappedDaily
+        hourlyItems = mappedHourly, dailyItems = mappedDaily,
+        rawHourlyTimes = hourlyTimes, rawHourlyTemps = hourlyTemps, rawHourlyCodes = hourlyCodes,
+        rawDailyTimes = dailyTimes, rawDailyHighs = dailyHighs, rawDailyLows = dailyLows, rawDailyCodes = dailyCodes
     )
 }

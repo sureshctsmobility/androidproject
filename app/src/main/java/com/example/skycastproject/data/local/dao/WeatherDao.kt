@@ -17,11 +17,13 @@ interface WeatherDao {
     @Query("DELETE FROM weather_cache_table WHERE cityName = :cityName")
     suspend fun clearWeatherCacheForCity(cityName: String)
 
-    // Gets the single most recently updated record, regardless of city name
     @Query("SELECT * FROM weather_cache_table ORDER BY lastUpdatedEpochMillis DESC LIMIT 1")
     suspend fun getAbsoluteLatestCache(): WeatherCacheEntity?
 
-    // Gets the latest update that has a specific city name (not the generic "My Location")
-    @Query("SELECT * FROM weather_cache_table WHERE cityName != 'My Location' ORDER BY lastUpdatedEpochMillis DESC LIMIT 1")
-    suspend fun getLatestSpecificCityCache(): WeatherCacheEntity?
+    /**
+     * Retrieves the latest weather cache entry that has a specific, named city.
+     * This avoids using generic entries like "My Location" when a more precise one is available.
+     */
+    @Query("SELECT * FROM weather_cache_table WHERE cityName NOT IN ('My Location', 'Current Location', 'Current', 'Cache Mapping Container') ORDER BY lastUpdatedEpochMillis DESC LIMIT 1")
+    suspend fun getLatestNamedCityCache(): WeatherCacheEntity?
 }

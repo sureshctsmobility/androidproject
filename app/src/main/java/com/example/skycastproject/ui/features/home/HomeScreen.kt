@@ -29,10 +29,12 @@ import androidx.compose.material.icons.filled.Umbrella
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,15 +49,30 @@ import com.example.skycastproject.ui.models.HomeStateWrapper
 import com.example.skycastproject.ui.theme.glassBackground
 import com.example.skycastproject.ui.theme.glassBorder
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(uiState: HomeStateWrapper, onRequestPermission: () -> Unit, onRefresh: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+fun HomeScreen(
+    uiState: HomeStateWrapper,
+    isRefreshing: Boolean,
+    onRequestPermission: () -> Unit,
+    onRefresh: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
         when (uiState) {
             is HomeStateWrapper.Loading -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(16.dp))
-                    Text("Fetching Location Coordinates...", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                    Text(
+                        "Fetching Location Coordinates...",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 14.sp
+                    )
                 }
             }
             is HomeStateWrapper.PermissionDenied -> {
@@ -84,70 +101,79 @@ fun HomeScreen(uiState: HomeStateWrapper, onRequestPermission: () -> Unit, onRef
                 // Map condition to tint
                 val iconTint = if (stats.weatherCode <= 1) Color(0xFFFFD700) else MaterialTheme.colorScheme.onBackground
 
-                Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(top = 48.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = {}, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.glassBackground).border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(14.dp))) {
-                            Icon(Icons.Default.GridView, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
-                        }
-                        Spacer(Modifier.weight(1f))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.LocationOn, null, tint = Color.Red, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(stats.cityName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = onRefresh, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.glassBackground).border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(14.dp))) {
-                            Icon(Icons.Default.Refresh, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                    Spacer(Modifier.height(20.dp))
-                    Box(modifier = Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(40.dp)).background(MaterialTheme.glassBackground).border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(40.dp)), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(imageVector = weatherIcon, null, tint = iconTint, modifier = Modifier.size(100.dp))
-                            Text("${stats.currentTemp}°", fontSize = 70.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-                            Text(stats.condition, fontSize = 22.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
-                            Text(stats.date, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), fontSize = 13.sp)
-                        }
-                    }
-                    Spacer(Modifier.height(24.dp))
-                    WeatherStatsRow(stats.humidity, stats.wind, stats.rain, stats.uv)
-                    Spacer(Modifier.height(24.dp))
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(top = 48.dp, start = 20.dp, end = 20.dp, bottom = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(stats.hourlyForecast) { item ->
-                            val itemIcon = when (item.weatherCode) {
-                                0, 1 -> Icons.Default.WbSunny
-                                2, 3, 45, 48 -> Icons.Default.Cloud
-                                51, 53, 55, 61, 63, 65, 80, 81, 82 -> Icons.Default.Umbrella
-                                95, 96, 99 -> Icons.Default.Thunderstorm
-                                else -> Icons.Default.WbSunny
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = {}, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.glassBackground).border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(14.dp))) {
+                                Icon(Icons.Default.GridView, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
                             }
-                            val itemTint = if (item.weatherCode <= 1) Color(0xFFFFD700) else MaterialTheme.colorScheme.onBackground
+                            Spacer(Modifier.weight(1f))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.LocationOn, null, tint = Color.Red, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(stats.cityName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                }
+                            }
+                            Spacer(Modifier.weight(1f))
+                            IconButton(onClick = onRefresh, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.glassBackground).border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(14.dp))) {
+                                Icon(Icons.Default.Refresh, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(Modifier.height(20.dp))
+                        Box(modifier = Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(40.dp)).background(MaterialTheme.glassBackground).border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(40.dp)), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(imageVector = weatherIcon, null, tint = iconTint, modifier = Modifier.size(100.dp))
+                                Text("${stats.currentTemp}°", fontSize = 70.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                Text(stats.condition, fontSize = 22.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
+                                Text(stats.date, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), fontSize = 13.sp)
+                            }
+                        }
+                        Spacer(Modifier.height(24.dp))
+                        WeatherStatsRow(stats.humidity, stats.wind, stats.rain, stats.uv)
+                        Spacer(Modifier.height(24.dp))
 
-                            Box(
-                                modifier = Modifier
-                                    .width(72.dp) // Wider for labels like "12 pm"
-                                    .height(130.dp) // Increased height to prevent cutting
-                                    .clip(RoundedCornerShape(22.dp))
-                                    .background(MaterialTheme.glassBackground)
-                                    .border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(22.dp))
-                                    .padding(vertical = 12.dp), 
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(item.time, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontSize = 11.sp)
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("${item.temp}°", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    Spacer(Modifier.height(8.dp))
-                                    Icon(imageVector = itemIcon, null, tint = itemTint, modifier = Modifier.size(24.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            items(stats.hourlyForecast) { item ->
+                                val itemIcon = when (item.weatherCode) {
+                                    0, 1 -> Icons.Default.WbSunny
+                                    2, 3, 45, 48 -> Icons.Default.Cloud
+                                    51, 53, 55, 61, 63, 65, 80, 81, 82 -> Icons.Default.Umbrella
+                                    95, 96, 99 -> Icons.Default.Thunderstorm
+                                    else -> Icons.Default.WbSunny
+                                }
+                                val itemTint = if (item.weatherCode <= 1) Color(0xFFFFD700) else MaterialTheme.colorScheme.onBackground
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(72.dp) // Wider for labels like "12 pm"
+                                        .height(130.dp) // Increased height to prevent cutting
+                                        .clip(RoundedCornerShape(22.dp))
+                                        .background(MaterialTheme.glassBackground)
+                                        .border(1.dp, MaterialTheme.glassBorder, RoundedCornerShape(22.dp))
+                                        .padding(vertical = 12.dp), 
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(item.time, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontSize = 11.sp)
+                                        Spacer(Modifier.height(8.dp))
+                                        Text("${item.temp}°", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Spacer(Modifier.height(8.dp))
+                                        Icon(imageVector = itemIcon, null, tint = itemTint, modifier = Modifier.size(24.dp))
+                                    }
                                 }
                             }
                         }

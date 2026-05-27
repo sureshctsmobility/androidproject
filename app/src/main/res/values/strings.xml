@@ -1,3 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SkycastProject</string>
+    <string name="app_name">SkyCast</string>
+
+    <string name="nav_today">Today</string>
+    <string name="nav_forecast">Forecast</string>
+    <string name="nav_cities">Cities</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="sync_gps_label">Live GPS Sync</string>
+    <string name="sync_cache_label">Synced via Cache</string>
+    <string name="fetching_gps_coordinates">Fetching GPS Location Coordinates...</string>
+    <string name="location_permission_required">Location access is required to parse local conditions without placeholders.</string>
+    <string name="grant_location_access">Grant Access</string>
+
+    <string name="stat_humidity">HUMIDITY</string>
+    <string name="stat_wind">WIND</string>
+    <string name="stat_rain">RAIN</string>
+    <string name="stat_uv">UV INDEX</string>
+    <string name="trend_chart_header">TEMPERATURE TREND (°C)</string>
+
+    <string name="search_header_title">Add Location</string>
+    <string name="search_textfield_placeholder">Enter city name...</string>
+    <string name="search_api_loading_indicator">Fetching weather data from API...</string>
+    <string name="search_add_tracking_button">+ Add to Tracked Cities</string>
+
+    <string name="widget_fallback_initialize">Open SkyCast to initialize telemetry.</string>
 </resources>

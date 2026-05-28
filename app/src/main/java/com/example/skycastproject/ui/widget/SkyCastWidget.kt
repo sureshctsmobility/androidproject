@@ -51,7 +51,6 @@ class SkyCastWidget : GlanceAppWidget() {
         val weatherDao = entryPoint.databaseInstance().weatherDao()
         val locationTracker = entryPoint.locationTracker()
 
-        // 1. Resolve current geocoded name for fallback
         val geocodedCityName = withContext(Dispatchers.IO) {
             val location = locationTracker.getCurrentLocationCoordinates()
             if (location != null) {
@@ -68,9 +67,8 @@ class SkyCastWidget : GlanceAppWidget() {
             }
         }
 
-        // 2. Fetch data: Prefer named city cache over generic "My Location" to ensure sync with app's last selected city
-        val currentCache = weatherDao.getLatestNamedCityCache() 
-            ?: weatherDao.getAbsoluteLatestCache()
+        // Source of Truth: Pull the absolute latest entry updated by the app
+        val currentCache = weatherDao.getAbsoluteLatestCache()
 
         provideContent {
             WidgetLayout(currentCache, geocodedCityName)
@@ -98,7 +96,6 @@ class SkyCastWidget : GlanceAppWidget() {
                 modifier = GlanceModifier.fillMaxSize(),
                 verticalAlignment = Alignment.Vertical.CenterVertically
             ) {
-                // LEFT COLUMN
                 Column(
                     modifier = GlanceModifier
                         .defaultWeight()
@@ -128,7 +125,6 @@ class SkyCastWidget : GlanceAppWidget() {
                     )
                 }
 
-                // RIGHT COLUMN
                 Box(
                     modifier = GlanceModifier
                         .fillMaxHeight()
@@ -148,10 +144,14 @@ class SkyCastWidget : GlanceAppWidget() {
                             verticalAlignment = Alignment.Vertical.CenterVertically,
                             modifier = GlanceModifier.padding(end = 8.dp)
                         ) {
+                            // Robust Icon Selection
                             val conditionIcon = when (cache?.weatherCode) {
                                 0, 1 -> R.drawable.ic_widget_sunny
-                                2, 3, 45, 48 -> R.drawable.ic_widget_partly_cloudy
-                                else -> R.drawable.ic_widget_cloudy // Fallback for Rainy/Stormy/Snowy
+                                2, 3 -> R.drawable.ic_widget_partly_cloudy
+                                45, 48 -> R.drawable.ic_widget_cloudy
+                                in 51..82 -> R.drawable.ic_widget_partly_cloudy // Use Rain/Partly Cloudy icon
+                                in 95..99 -> R.drawable.ic_widget_cloudy // Use Storm icon if available, fallback to Cloudy
+                                else -> R.drawable.ic_widget_cloudy
                             }
 
                             Image(
@@ -173,7 +173,6 @@ class SkyCastWidget : GlanceAppWidget() {
                                 )
                                 Spacer(modifier = GlanceModifier.width(4.dp))
                                 
-                                // Logic: Use cache name unless it is generic, then use current geocoded fallback
                                 val cityNameToShow = when (cache?.cityName) {
                                     null, "My Location", "Current Location", "Current", "Cache Mapping Container" -> fallbackName
                                     else -> cache.cityName
@@ -198,14 +197,12 @@ class SkyCastWidget : GlanceAppWidget() {
             2 -> "Partly Cloudy"
             3 -> "Overcast"
             45, 48 -> "Foggy"
-            51, 53, 55 -> "Drizzle"
-            61, 63, 65 -> "Rainy"
-            66, 67 -> "Freezing Rain"
-            71, 73, 75 -> "Snowy"
-            77 -> "Snow Grains"
-            80, 81, 82 -> "Rain Showers"
-            85, 86 -> "Snow Showers"
-            95, 96, 99 -> "Thunderstorm"
+            in 51..55 -> "Drizzle"
+            in 61..67 -> "Rainy"
+            in 71..77 -> "Snowy"
+            in 80..82 -> "Rain Showers"
+            in 85..86 -> "Snow Showers"
+            in 95..99 -> "Thunderstorm"
             else -> "Sunny"
         }
     }
